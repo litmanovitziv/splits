@@ -9,6 +9,7 @@ class SplitWriter(object):
     def __init__(self, basepath = None,
                  suffix='',
                  header='',
+                 bulks_per_file=math.inf,
                  lines_per_file=math.inf,
                  fileClass=open,
                  fileArgs={'mode': 'wb'}):
@@ -17,12 +18,14 @@ class SplitWriter(object):
 
         self.suffix = suffix
         self._basepath = basepath
+        self.bulks_per_file = bulks_per_file
         self.lines_per_file = lines_per_file
         self.fileClass = fileClass
         self.fileArgs = fileArgs
         self._labels = []
         self._seq_num = 0
         self._line_num = 0
+        self._file_bulk_num = 0
         self._file_line_num = 0
         self._header = header
         self._is_create = False
@@ -86,6 +89,7 @@ class SplitWriter(object):
             if not isinstance(line, bytes):
                 line = line.encode('utf-8')
             self._write_line(line)
+        self._file_bulk_num += 1
 
     def _write_line(self, line):
         f = self._get_current_file()
@@ -106,7 +110,9 @@ class SplitWriter(object):
         f.close()
 
     def _get_current_file(self):
-        if self._is_create or self._file_line_num >= self.lines_per_file:
+        if (self._is_create or
+                self._file_bulk_num >= self.bulks_per_file or
+                self._file_line_num >= self.lines_per_file):
 
             if self._current_file:
                 self._current_file.close()
@@ -119,10 +125,10 @@ class SplitWriter(object):
     def _create_file(self):
         self._seq_num += 1
         self._file_line_num = 0
+        self._file_bulk_num = 0
 
-        path = path_with_fillers(self._basepath, self.suffix, *self._labels) if self._is_create \
-            else path_with_version(self._basepath, self._seq_num, self.suffix)
+        path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._seq_num] + self._labels))
         self._is_create = False
 
-        self._written_file_paths.append((','.join(self._labels) + ',' + path).encode('utf-8'))
+        self._written_file_paths.append((','.join(['%06d' % self._seq_num] + self._labels) + ',' + path).encode('utf-8'))
         return self.fileClass(path, **self.fileArgs)
