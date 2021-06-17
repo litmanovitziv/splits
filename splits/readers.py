@@ -1,18 +1,21 @@
 import functools
 import os
+import re
 
 
 class SplitReader(object):
     def __init__(self, func,
                  resource,
                  fileClass = open,
-                 fileArgs = {'mode': 'rb'}):
+                 fileArgs = {'mode': 'rb'},
+                 re_filter=r'^.*'):
 
             functools.update_wrapper(self, func)
             self.func = func
 
             self.fileClass = fileClass
             self.fileArgs = fileArgs
+            self._regex_filter = re.compile(re_filter)
 
             if type(resource) == list:
                 self.manifest = iter(self._get_files_list(resource))
@@ -130,15 +133,17 @@ class SplitReader(object):
 
     def _get_files_list(self, path_list):
         for path in path_list:
+            if not self._regex_filter.search(path): continue
             f = self.fileClass(path.strip(), **self.fileArgs)
             yield f
             f.close()
 
-    def _get_files_tree(self, basepath, only_leaves = True):
+    def _get_files_tree(self, basepath, only_leaves=True):
         # root path, directories names, files' names
         for root, dirs, files in os.walk(basepath, topdown=False):
             if not only_leaves and not dirs: continue
             for file in files:
+                if not self._regex_filter.search(file): continue
                 f = self.fileClass(os.path.join(root, file).strip(), **self.fileArgs)
                 yield f
                 f.close()
