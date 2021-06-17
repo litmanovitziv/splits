@@ -1,25 +1,33 @@
+import functools
 
 
 class SplitReader(object):
-    def __init__(self,
+    def __init__(self, func,
                  manifest_path_or_list,
-                 fileClass=open,
-                 fileArgs={'mode': 'rb'}):
-        self.fileClass = fileClass
-        self.fileArgs = fileArgs
+                 fileClass = open,
+                 fileArgs = {'mode': 'rb'}):
 
-        if type(manifest_path_or_list) == list:
-            self.manifest = iter(self._get_files(manifest_path_or_list))
-        else:
-            if not manifest_path_or_list.endswith('.manifest'):
-                manifest_path_or_list += '.manifest'
+            functools.update_wrapper(self, func)
+            self.func = func
 
-            with self.fileClass(manifest_path_or_list, **self.fileArgs) as f:
-                # remove newlines from filenames
-                self.manifest = iter(
-                    self._get_files([x[:-1] for x in f.readlines()]))
+            self.fileClass = fileClass
+            self.fileArgs = fileArgs
 
-        self._current_file = next(self.manifest)
+            if type(manifest_path_or_list) == list:
+                self.manifest = iter(self._get_files(manifest_path_or_list))
+            else:
+                if not manifest_path_or_list.endswith('.manifest'):
+                    manifest_path_or_list += '.manifest'
+
+                with self.fileClass(manifest_path_or_list, **self.fileArgs) as f:
+                    # remove newlines from filenames
+                    self.manifest = iter(
+                        self._get_files([x[:-1] for x in f.readlines()]))
+
+            self._current_file = next(self.manifest)
+
+    def __call__(self, *args, **kwargs):
+        return self.func(self)
 
     def __enter__(self):
         return self
@@ -32,6 +40,13 @@ class SplitReader(object):
 
     def __next__(self):
         return self.next()
+
+    @staticmethod
+    def reader_decorator(*args, **kwargs):
+        def _reader_decorator(func):
+            return SplitReader(func, *args, **kwargs)
+
+        return _reader_decorator
 
     def next(self):
         line = self.readline()
