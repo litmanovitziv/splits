@@ -10,6 +10,7 @@ class SplitWriter(object):
                  suffix='',
                  header='',
                  max_labels=10,
+                 last_group_id=-1,
                  bulks_per_file=math.inf,
                  lines_per_file=math.inf,
                  fileClass=open,
@@ -25,7 +26,7 @@ class SplitWriter(object):
         self.fileArgs = fileArgs
         self._max_labels = max_labels
         self._current_labels = []
-        self._file_id = 0
+        self._file_id = 0 if last_group_id < 0 else math.ceil(last_group_id)
         self._line_num = 0
         self._file_bulk_num = 0
         self._file_line_num = 0
@@ -112,7 +113,7 @@ class SplitWriter(object):
             self._current_file.close()
 
         path = path_with_fillers(self._basepath, '.csv', 'index_file')
-        f = self.fileClass(path, **self.fileArgs)
+        f = self.fileClass(path, **{'mode': 'ab'})
         index_header = ','.join(['file_id', 'file_name'] + ['']*self._max_labels)
         f.write(b'\n'.join([x.encode('utf-8') for x in [index_header] + self._written_file_paths]))
         f.close()
