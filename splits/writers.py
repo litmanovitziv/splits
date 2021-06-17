@@ -8,6 +8,7 @@ from splits.util import path_with_version, path_with_fillers
 class SplitWriter(object):
     def __init__(self, basepath = None,
                  suffix='',
+                 header='',
                  lines_per_file=math.inf,
                  fileClass=open,
                  fileArgs={'mode': 'wb'}):
@@ -23,6 +24,7 @@ class SplitWriter(object):
         self._seq_num = 0
         self._line_num = 0
         self._file_line_num = 0
+        self._header = header
         self._is_create = False
         self._written_file_paths = []
         self._current_file = None
@@ -44,6 +46,10 @@ class SplitWriter(object):
     def basepath(self):
         return self._basepath
 
+    @property
+    def header(self):
+        return self._header
+
     @labels.setter
     def labels(self, input_labels):
         self._labels = input_labels
@@ -53,6 +59,10 @@ class SplitWriter(object):
     def basepath(self, dir_path):
         self._basepath = dir_path
         self._is_create = True
+
+    @header.setter
+    def header(self, new_header):
+        self._header = new_header
 
     @staticmethod
     def writer_decorator(*args, **kwargs):
@@ -67,18 +77,18 @@ class SplitWriter(object):
         cnt = data.count(b'\n')
         for index, line in enumerate(data.split(b'\n')):
             if index == cnt:
-                self.write_line(line)
+                self._write_line(line)
             else:
-                self.write_line(line + b'\n')
+                self._write_line(line + b'\n')
 
     def writelines(self, lines):
         for line in lines:
-            self.write_line(line)
+            if not isinstance(line, bytes):
+                line = line.encode('utf-8')
+            self._write_line(line)
 
-    def write_line(self, line):
+    def _write_line(self, line):
         f = self._get_current_file()
-        if not isinstance(line, bytes):
-            line = line.encode('utf-8')
         f.write(line)
         self._line_num += line.count(b'\n')
         self._file_line_num += line.count(b'\n')
@@ -102,6 +112,7 @@ class SplitWriter(object):
                 self._current_file.close()
 
             self._current_file = self._create_file()
+            if self._header.strip(): self._current_file.write(self._header.encode('utf-8'))
 
         return self._current_file
 
