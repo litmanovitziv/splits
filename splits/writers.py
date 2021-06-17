@@ -113,7 +113,7 @@ class SplitWriter(object):
 
         path = path_with_fillers(self._basepath, '.csv', 'index_file')
         f = self.fileClass(path, **self.fileArgs)
-        index_header = ','.join(['file_id', 'file_path'] + ['']*self._max_labels)
+        index_header = ','.join(['file_id', 'file_name'] + ['']*self._max_labels)
         f.write(b'\n'.join([x.encode('utf-8') for x in [index_header] + self._written_file_paths]))
         f.close()
 
@@ -135,7 +135,9 @@ class SplitWriter(object):
         self._file_line_num = 0
         self._file_bulk_num = 0
 
-        path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._file_id] + self._current_labels))
+        path = '_'.join(['%06d' % self._file_id] + self._current_labels) + self.suffix
+        # path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._file_id] + self._current_labels))
         file_entity = ['%06d' % self._file_id, path] + self._current_labels + ['']*self._max_labels
         self._written_file_paths.append(','.join(file_entity[:(self._max_labels+2)]))
+        path = os.path.join(self.basepath, path)
         return self.fileClass(path, **self.fileArgs)
