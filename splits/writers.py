@@ -6,7 +6,7 @@ from splits.util import path_with_version, path_with_fillers
 
 
 class SplitWriter(object):
-    def __init__(self, basepath,
+    def __init__(self, basepath = None,
                  suffix='',
                  lines_per_file=math.inf,
                  fileClass=open,
@@ -15,7 +15,7 @@ class SplitWriter(object):
         # self.func = func
 
         self.suffix = suffix
-        self.basepath = basepath
+        self._basepath = basepath
         self.lines_per_file = lines_per_file
         self.fileClass = fileClass
         self.fileArgs = fileArgs
@@ -40,9 +40,18 @@ class SplitWriter(object):
     def labels(self):
         return self._labels
 
+    @property
+    def basepath(self):
+        return self._basepath
+
     @labels.setter
     def labels(self, input_labels):
         self._labels = input_labels
+        self._is_create = True
+
+    @basepath.setter
+    def basepath(self, dir_path):
+        self._basepath = dir_path
         self._is_create = True
 
     @staticmethod
@@ -78,7 +87,7 @@ class SplitWriter(object):
         if self._current_file:
             self._current_file.close()
 
-        path = self.basepath[:-1] if self.basepath.endswith('/') else self.basepath
+        path = self._basepath[:-1] if self._basepath.endswith('/') else self._basepath
         path += '.manifest'
 
         f = self.fileClass(path, **self.fileArgs)
@@ -100,8 +109,8 @@ class SplitWriter(object):
         self._seq_num += 1
         self._file_line_num = 0
 
-        path = path_with_fillers(self.basepath, self.suffix, *self._labels) if self._is_create \
-            else path_with_version(self.basepath, self._seq_num, self.suffix)
+        path = path_with_fillers(self._basepath, self.suffix, *self._labels) if self._is_create \
+            else path_with_version(self._basepath, self._seq_num, self.suffix)
         self._is_create = False
 
         self._written_file_paths.append((','.join(self._labels) + ',' + path).encode('utf-8'))
