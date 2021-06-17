@@ -7,14 +7,14 @@ from splits.util import path_with_version, path_with_fillers
 
 class SplitWriter(object):
     def __init__(self, basepath = None,
-                 suffix='',
+                 suffix='.csv',
                  header='',
                  max_labels=10,
                  last_group_id=-1,
                  bulks_per_file=math.inf,
                  lines_per_file=math.inf,
                  fileClass=open,
-                 fileArgs={'mode': 'wb'}):
+                 fileArgs={'mode': 'ab'}):
         # functools.update_wrapper(self, func)
         # self.func = func
 
@@ -136,8 +136,8 @@ class SplitWriter(object):
         self._file_line_num = 0
         self._file_bulk_num = 0
 
-        path = '_'.join(['%06d' % self._file_id] + self._current_labels) + self.suffix
-        # path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._file_id] + self._current_labels))
+        # path = '_'.join(['%06d' % self._file_id] + self._current_labels) + self.suffix
+        path = path_with_fillers(self._basepath, self.suffix, *self._current_labels)
         file_entity = ['%06d' % self._file_id, path] + self._current_labels + ['']*self._max_labels
         self._written_file_paths.append(','.join(file_entity[:(self._max_labels+2)]))
         path = os.path.join(self.basepath, path)
