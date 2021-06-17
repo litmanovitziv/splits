@@ -13,6 +13,7 @@ class SplitReader(object):
             functools.update_wrapper(self, func)
             self.func = func
 
+            self._basepath = None
             self.fileClass = fileClass
             self.fileArgs = fileArgs
             self._regex_filter = re.compile(re_filter)
@@ -45,6 +46,10 @@ class SplitReader(object):
 
     def __next__(self):
         return self.next()
+
+    @property
+    def basepath(self):
+        return self._basepath
 
     @staticmethod
     def reader_decorator(*args, **kwargs):
@@ -134,6 +139,8 @@ class SplitReader(object):
     def _get_files_list(self, path_list):
         for path in path_list:
             if not self._regex_filter.search(path): continue
+            path_dir, path_file = os.path.split(path)
+            self._basepath = path_dir if path_dir else None
             f = self.fileClass(path.strip(), **self.fileArgs)
             yield f
             f.close()
@@ -142,8 +149,9 @@ class SplitReader(object):
         # root path, directories names, files' names
         for root, dirs, files in os.walk(basepath, topdown=False):
             if not only_leaves and not dirs: continue
+            self._basepath = root
             for file in files:
                 if not self._regex_filter.search(file): continue
-                f = self.fileClass(os.path.join(root, file).strip(), **self.fileArgs)
+                f = self.fileClass(os.path.join(self._basepath, file).strip(), **self.fileArgs)
                 yield f
                 f.close()
