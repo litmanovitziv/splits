@@ -1,9 +1,10 @@
 import functools
+import os
 
 
 class SplitReader(object):
     def __init__(self, func,
-                 manifest_path_or_list,
+                 resource,
                  fileClass = open,
                  fileArgs = {'mode': 'rb'}):
 
@@ -13,16 +14,17 @@ class SplitReader(object):
             self.fileClass = fileClass
             self.fileArgs = fileArgs
 
-            if type(manifest_path_or_list) == list:
-                self.manifest = iter(self._get_files(manifest_path_or_list))
+            if type(resource) == list:
+                self.manifest = iter(self._get_files_list(resource))
+            elif os.path.isdir(resource):
+                self.manifest = iter(self._get_files_tree(resource))
             else:
-                if not manifest_path_or_list.endswith('.manifest'):
-                    manifest_path_or_list += '.manifest'
+                if not resource.endswith('.manifest'):
+                    resource += '.manifest'
 
-                with self.fileClass(manifest_path_or_list, **self.fileArgs) as f:
+                with self.fileClass(resource, **self.fileArgs) as f:
                     # remove newlines from filenames
-                    self.manifest = iter(
-                        self._get_files([x[:-1] for x in f.readlines()]))
+                    self.manifest = iter(self._get_files_list(f.readlines()))
 
             self._current_file = next(self.manifest)
 
@@ -126,8 +128,17 @@ class SplitReader(object):
 
         return self._current_file
 
-    def _get_files(self, manifest):
-        for path in manifest:
-            f = self.fileClass(path, **self.fileArgs)
+    def _get_files_list(self, path_list):
+        for path in path_list:
+            f = self.fileClass(path.strip(), **self.fileArgs)
             yield f
             f.close()
+
+    def _get_files_tree(self, basepath, only_leaves = True):
+        # root path, directories names, files' names
+        for root, dirs, files in os.walk(basepath, topdown=False):
+            if not only_leaves and not dirs: continue
+            for file in files:
+                f = self.fileClass(os.path.join(root, file).strip(), **self.fileArgs)
+                yield f
+                f.close()
