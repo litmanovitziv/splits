@@ -22,13 +22,12 @@ class SplitWriter(object):
         self.lines_per_file = lines_per_file
         self.fileClass = fileClass
         self.fileArgs = fileArgs
-        self._labels = []
-        self._seq_num = 0
+        self._current_labels = []
+        self._file_id = 0
         self._line_num = 0
         self._file_bulk_num = 0
         self._file_line_num = 0
         self._header = header
-        self._is_create = False
         self._written_file_paths = []
         self._current_file = None
 
@@ -43,7 +42,7 @@ class SplitWriter(object):
 
     @property
     def labels(self):
-        return self._labels
+        return self._current_labels
 
     @property
     def basepath(self):
@@ -55,13 +54,21 @@ class SplitWriter(object):
 
     @labels.setter
     def labels(self, input_labels):
-        self._labels = input_labels
-        self._is_create = True
+        self._current_labels = input_labels
+
+        if self._current_file:
+            self._current_file.close()
+
+        self._current_file = self._create_file()
+        if self._header.strip():
+            self._current_file.write(self._header.encode('utf-8'))
 
     @basepath.setter
     def basepath(self, dir_path):
         self._basepath = dir_path
-        self._is_create = True
+        self._current_labels = []
+        if self._current_file:
+            self._current_file.close()
 
     @header.setter
     def header(self, new_header):
@@ -89,7 +96,8 @@ class SplitWriter(object):
             if not isinstance(line, bytes):
                 line = line.encode('utf-8')
             self._write_line(line)
-        self._file_bulk_num += 1
+        if lines:
+            self._file_bulk_num += 1
 
     def _write_line(self, line):
         f = self._get_current_file()
@@ -105,30 +113,29 @@ class SplitWriter(object):
         path += '.manifest'
 
         f = self.fileClass(path, **self.fileArgs)
-        header = (','.join([''] * (len(self._labels)+1)) + 'path').encode('utf-8')
+        header = (','.join([''] * (len(self._current_labels)+1)) + 'path').encode('utf-8')
         f.write(b'\n'.join([x for x in [header] + self._written_file_paths]))
         f.close()
 
     def _get_current_file(self):
-        if (self._is_create or
-                self._file_bulk_num >= self.bulks_per_file or
+        if (self._file_bulk_num >= self.bulks_per_file or
                 self._file_line_num >= self.lines_per_file):
 
             if self._current_file:
                 self._current_file.close()
 
             self._current_file = self._create_file()
-            if self._header.strip(): self._current_file.write(self._header.encode('utf-8'))
+            if self._header.strip():
+                self._current_file.write(self._header.encode('utf-8'))
 
         return self._current_file
 
     def _create_file(self):
-        self._seq_num += 1
+        self._file_id += 1
         self._file_line_num = 0
         self._file_bulk_num = 0
 
-        path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._seq_num] + self._labels))
-        self._is_create = False
+        path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._file_id] + self._current_labels))
 
-        self._written_file_paths.append((','.join(['%06d' % self._seq_num] + self._labels) + ',' + path).encode('utf-8'))
+        self._written_file_paths.append((','.join(['%06d' % self._file_id] + self._current_labels) + ',' + path).encode('utf-8'))
         return self.fileClass(path, **self.fileArgs)
