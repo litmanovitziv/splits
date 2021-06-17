@@ -9,6 +9,7 @@ class SplitWriter(object):
     def __init__(self, basepath = None,
                  suffix='',
                  header='',
+                 max_labels=10,
                  bulks_per_file=math.inf,
                  lines_per_file=math.inf,
                  fileClass=open,
@@ -17,11 +18,12 @@ class SplitWriter(object):
         # self.func = func
 
         self.suffix = suffix
-        self._basepath = basepath
+        self._basepath = basepath[:-1] if basepath.endswith('/') else basepath
         self.bulks_per_file = bulks_per_file
         self.lines_per_file = lines_per_file
         self.fileClass = fileClass
         self.fileArgs = fileArgs
+        self._max_labels = max_labels
         self._current_labels = []
         self._file_id = 0
         self._line_num = 0
@@ -54,7 +56,7 @@ class SplitWriter(object):
 
     @labels.setter
     def labels(self, input_labels):
-        self._current_labels = input_labels
+        self._current_labels = input_labels[:self._max_labels]
 
         if self._current_file:
             self._current_file.close()
@@ -109,12 +111,10 @@ class SplitWriter(object):
         if self._current_file:
             self._current_file.close()
 
-        path = self._basepath[:-1] if self._basepath.endswith('/') else self._basepath
-        path += '.manifest'
-
+        path = path_with_fillers(self._basepath, '.csv', 'index_file')
         f = self.fileClass(path, **self.fileArgs)
-        header = (','.join([''] * (len(self._current_labels)+1)) + 'path').encode('utf-8')
-        f.write(b'\n'.join([x for x in [header] + self._written_file_paths]))
+        index_header = ','.join(['file_id', 'file_path'] + ['']*self._max_labels)
+        f.write(b'\n'.join([x.encode('utf-8') for x in [index_header] + self._written_file_paths]))
         f.close()
 
     def _get_current_file(self):
@@ -136,6 +136,6 @@ class SplitWriter(object):
         self._file_bulk_num = 0
 
         path = path_with_fillers(self._basepath, self.suffix, *(['%06d' % self._file_id] + self._current_labels))
-
-        self._written_file_paths.append((','.join(['%06d' % self._file_id] + self._current_labels) + ',' + path).encode('utf-8'))
+        file_entity = ['%06d' % self._file_id, path] + self._current_labels + ['']*self._max_labels
+        self._written_file_paths.append(','.join(file_entity[:(self._max_labels+2)]))
         return self.fileClass(path, **self.fileArgs)
