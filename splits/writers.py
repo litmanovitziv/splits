@@ -25,7 +25,7 @@ class SplitWriter(object):
         self._file_line_num = 0
         self._is_create = False
         self._written_file_paths = []
-        self._current_file = self._create_file()
+        self._current_file = None
 
     # def __call__(self, *args, **kwargs):
     #     return self.func(self)
@@ -82,7 +82,8 @@ class SplitWriter(object):
         path += '.manifest'
 
         f = self.fileClass(path, **self.fileArgs)
-        f.write(b''.join([x + b'\n' for x in self._written_file_paths]))
+        header = (','.join([''] * (len(self._labels)+1)) + 'path').encode('utf-8')
+        f.write(b'\n'.join([x for x in [header] + self._written_file_paths]))
         f.close()
 
     def _get_current_file(self):
@@ -103,5 +104,5 @@ class SplitWriter(object):
             else path_with_version(self.basepath, self._seq_num, self.suffix)
         self._is_create = False
 
-        self._written_file_paths.append(path.encode('utf-8'))
+        self._written_file_paths.append((','.join(self._labels) + ',' + path).encode('utf-8'))
         return self.fileClass(path, **self.fileArgs)
