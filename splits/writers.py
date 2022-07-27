@@ -15,8 +15,6 @@ class SplitWriter(object):
                  lines_per_file=math.inf,
                  fileClass=open,
                  fileArgs={'mode': 'ab'}):
-        # functools.update_wrapper(self, func)
-        # self.func = func
 
         self.suffix = suffix
         self._basepath = basepath[:-1] if basepath.endswith('/') else basepath
@@ -34,8 +32,12 @@ class SplitWriter(object):
         self._written_file_paths = []
         self._current_file = None
 
-    # def __call__(self, *args, **kwargs):
-    #     return self.func(self)
+    def __call__(self, func):
+        @functools.wraps(func)
+        def _writer_wrapper(*args, **kwargs):
+            return func(self, *args, **kwargs)
+
+        return _writer_wrapper
 
     def __enter__(self):
         return self
@@ -76,13 +78,6 @@ class SplitWriter(object):
     @header.setter
     def header(self, new_header):
         self._header = new_header
-
-    @staticmethod
-    def writer_decorator(*args, **kwargs):
-        def _writer_decorator(func):
-            return SplitWriter(func, *args, **kwargs)
-
-        return _writer_decorator
 
     def write(self, data):
         if not isinstance(data, bytes):

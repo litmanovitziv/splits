@@ -4,14 +4,11 @@ import re
 
 
 class SplitReader(object):
-    def __init__(self, func,
+    def __init__(self,
                  resource,
                  fileClass = open,
                  fileArgs = {'mode': 'rb'},
                  re_filter=r'^.*'):
-
-            functools.update_wrapper(self, func)
-            self.func = func
 
             self._basepath = None
             self.fileClass = fileClass
@@ -32,8 +29,12 @@ class SplitReader(object):
 
             self._current_file = next(self.manifest)
 
-    def __call__(self, *args, **kwargs):
-        return self.func(self)
+    def __call__(self, func):
+        @functools.wraps(func)
+        def _reader_wrapper(*args, **kwargs):
+            return func(self, *args, **kwargs)
+
+        return _reader_wrapper
 
     def __enter__(self):
         return self
@@ -50,13 +51,6 @@ class SplitReader(object):
     @property
     def basepath(self):
         return self._basepath
-
-    @staticmethod
-    def reader_decorator(*args, **kwargs):
-        def _reader_decorator(func):
-            return SplitReader(func, *args, **kwargs)
-
-        return _reader_decorator
 
     def next(self):
         line = self.readline()
