@@ -3,7 +3,7 @@ import tempfile
 import shutil
 import os
 
-from context import SplitReader, SplitWriter
+from .context import SplitReader, SplitWriter
 
 
 def stringify(intval, skip_nl):
@@ -23,7 +23,7 @@ class TestMultiReader(unittest.TestCase):
         self.writer.writelines([stringify(x, x == 9) for x in range(0, 10)])
         self.writer.close()
 
-        self.reader = SplitReader(self.path + '.manifest')
+        self.reader = SplitReader(self.path, re_filter=r'([0-9]*)(.txt)')
 
     def tearDown(self):
         self.reader.close()
@@ -77,8 +77,9 @@ class TestMultiReader(unittest.TestCase):
         manifest = [os.path.join(self.path, '%06d%s' % (x, '.txt'))
                     for x in range(1,6)]
 
-        self.reader = SplitReader(manifest)
-        lines = self.reader.read()
+        seq_reader = SplitReader(manifest)
+        lines = seq_reader.read()
+        seq_reader.close()
 
         self.assertEqual(len(lines.split(b'\n')), 10)
         for index, x in enumerate(lines.split(b'\n')):
@@ -88,8 +89,9 @@ class TestMultiReader(unittest.TestCase):
         manifest = [os.path.join(self.path, '%06d%s' % (x, '.txt'))
                     for x in range(1,4)]
 
-        self.reader = SplitReader(manifest)
-        lines = self.reader.read()
+        seq_reader = SplitReader(manifest)
+        lines = seq_reader.read()
+        seq_reader.close()
 
         self.assertEqual(len(lines.split(b'\n')[:-1]), 6)
         for index, x in enumerate(lines.split(b'\n')[:-1]):

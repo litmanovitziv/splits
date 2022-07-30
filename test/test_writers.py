@@ -3,7 +3,7 @@ import tempfile
 import shutil
 import os
 
-from context import SplitWriter
+from .context import SplitWriter
 
 
 def stringify(intval, skip_nl):
