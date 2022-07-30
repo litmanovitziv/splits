@@ -40,7 +40,7 @@ class SplitReader(object):
         return self
 
     def __exit__(self, type, value, traceback):
-        pass
+        self.close()
 
     def __iter__(self):
         return self
@@ -59,7 +59,7 @@ class SplitReader(object):
         raise StopIteration()
 
     def close(self):
-        pass
+        self._current_file.close()
 
     def read(self, num=None):
         val = b''
