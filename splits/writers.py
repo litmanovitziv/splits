@@ -8,7 +8,6 @@ from splits.util import path_with_version, path_with_fillers
 class SplitWriter(object):
     def __init__(self, basepath = None,
                  suffix='.csv',
-                 header='',
                  max_labels=10,
                  last_group_id=-1,
                  bulks_per_file=math.inf,
@@ -27,7 +26,6 @@ class SplitWriter(object):
         self._line_num = 0
         self._file_bulk_num = 0
         self._file_line_num = 0
-        self._header = header
         self._written_file_paths = []
         self._current_file = None
         self.labels = []
@@ -53,10 +51,6 @@ class SplitWriter(object):
     def basepath(self):
         return self._basepath
 
-    @property
-    def header(self):
-        return self._header
-
     @labels.setter
     def labels(self, input_labels):
         self._current_labels = input_labels[:self._max_labels]
@@ -65,8 +59,6 @@ class SplitWriter(object):
             self._current_file.close()
 
         self._current_file = self._create_file()
-        if self._header.strip():
-            self._current_file.write(self._header.encode('utf-8'))
 
     @basepath.setter
     def basepath(self, dir_path):
@@ -74,10 +66,6 @@ class SplitWriter(object):
         self._current_labels = []
         if self._current_file:
             self._current_file.close()
-
-    @header.setter
-    def header(self, new_header):
-        self._header = new_header
 
     def write(self, data):
         if not isinstance(data, bytes):
@@ -121,8 +109,6 @@ class SplitWriter(object):
                 self._current_file.close()
 
             self._current_file = self._create_file()
-            if self._header.strip():
-                self._current_file.write(self._header.encode('utf-8'))
 
         return self._current_file
 
