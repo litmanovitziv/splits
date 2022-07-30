@@ -23,7 +23,6 @@ class SplitWriter(object):
         self.fileClass = fileClass
         self.fileArgs = fileArgs
         self._max_labels = max_labels
-        self._current_labels = []
         self._file_id = 0 if last_group_id < 0 else math.ceil(last_group_id)
         self._line_num = 0
         self._file_bulk_num = 0
@@ -31,6 +30,7 @@ class SplitWriter(object):
         self._header = header
         self._written_file_paths = []
         self._current_file = None
+        self.labels = []
 
     def __call__(self, func):
         @functools.wraps(func)
@@ -132,7 +132,7 @@ class SplitWriter(object):
         self._file_bulk_num = 0
 
         # path = '_'.join(['%06d' % self._file_id] + self._current_labels) + self.suffix
-        path = path_with_fillers(self._basepath, self.suffix, *self._current_labels)
+        path = path_with_fillers(self._basepath, self.suffix, *self._current_labels, seqnum=self._file_id)
         file_entity = ['%06d' % self._file_id, path] + self._current_labels + ['']*self._max_labels
         self._written_file_paths.append(','.join(file_entity[:(self._max_labels+2)]))
         path = os.path.join(self.basepath, path)
