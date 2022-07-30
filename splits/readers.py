@@ -1,6 +1,9 @@
 import functools
 import os
 import re
+import logging
+
+logger = logging.getLogger('reader')
 
 
 class SplitReader(object):
@@ -60,6 +63,7 @@ class SplitReader(object):
 
     def close(self):
         self._current_file.close()
+        logger.info('closing file {}'.format(self._current_file.name))
 
     def read(self, num=None):
         val = b''
@@ -76,6 +80,7 @@ class SplitReader(object):
 
                 if not new_data:
                     self._current_file.close()
+                    logger.info('closing file {}'.format(self._current_file.name))
                 else:
                     val += new_data
 
@@ -84,6 +89,7 @@ class SplitReader(object):
         except StopIteration:
             pass
 
+        logger.debug(val)
         return val
 
     def readline(self, limit=None):
@@ -102,6 +108,7 @@ class SplitReader(object):
 
                 if not new_data:
                     self._current_file.close()
+                    logger.info('closing file {}'.format(self._current_file.name))
                 else:
                     line += new_data
 
@@ -112,6 +119,7 @@ class SplitReader(object):
         except StopIteration:
             pass
 
+        logger.debug(line)
         return line
 
     def readlines(self, sizehint=None):
@@ -136,6 +144,7 @@ class SplitReader(object):
             path_dir, path_file = os.path.split(path)
             self._basepath = path_dir if path_dir else None
             f = self.fileClass(path.strip(), **self.fileArgs)
+            logger.info('opening file {}'.format(path))
             yield f
             f.close()
 
@@ -147,5 +156,6 @@ class SplitReader(object):
             for file in files:
                 if not self._regex_filter.search(file): continue
                 f = self.fileClass(os.path.join(self._basepath, file).strip(), **self.fileArgs)
+                logger.info('opening file {}'.format(file))
                 yield f
                 f.close()

@@ -1,8 +1,11 @@
 import functools
 import os
 import math
+import logging
 
 from splits.util import path_with_version, path_with_fillers
+
+logger = logging.getLogger('writer')
 
 
 class SplitWriter(object):
@@ -54,9 +57,11 @@ class SplitWriter(object):
     @labels.setter
     def labels(self, input_labels):
         self._current_labels = input_labels[:self._max_labels]
+        logger.info('attach new lables: {}'.format(self._current_labels))
 
         if self._current_file:
             self._current_file.close()
+            logger.info('closing file {}'.format(self._current_file.name))
 
         self._current_file = self._create_file()
 
@@ -66,6 +71,7 @@ class SplitWriter(object):
         self._current_labels = []
         if self._current_file:
             self._current_file.close()
+            logger.info('closing file {}'.format(self._current_file.name))
 
     def write(self, data):
         if not isinstance(data, bytes):
@@ -88,12 +94,14 @@ class SplitWriter(object):
     def _write_line(self, line):
         f = self._get_current_file()
         f.write(line)
+        logger.debug(line)
         self._line_num += line.count(b'\n')
         self._file_line_num += line.count(b'\n')
 
     def close(self):
         if self._current_file:
             self._current_file.close()
+            logger.info('closing file {}'.format(self._current_file.name))
 
         path = path_with_fillers(self._basepath, '.csv', 'index_file')
         f = self.fileClass(path, **{'mode': 'ab'})
@@ -107,6 +115,7 @@ class SplitWriter(object):
 
             if self._current_file:
                 self._current_file.close()
+                logger.info('closing file {}'.format(self._current_file.name))
 
             self._current_file = self._create_file()
 
@@ -122,4 +131,6 @@ class SplitWriter(object):
         file_entity = ['%06d' % self._file_id, path] + self._current_labels + ['']*self._max_labels
         self._written_file_paths.append(','.join(file_entity[:(self._max_labels+2)]))
         path = os.path.join(self.basepath, path)
-        return self.fileClass(path, **self.fileArgs)
+        target_file = self.fileClass(path, **self.fileArgs)
+        logger.info('opening file {}'.format(target_file))
+        return target_file
